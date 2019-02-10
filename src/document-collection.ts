@@ -4,6 +4,7 @@ import { Document } from './document';
 import { ICacheable } from './interfaces/cacheable';
 import { Converter } from './services/converter';
 import { IDataCollection } from './interfaces/data-collection';
+import { Core } from './core';
 
 export class DocumentCollection<R extends Resource = Resource> extends Document implements ICacheable {
     public data: Array<R> = [];
@@ -40,6 +41,16 @@ export class DocumentCollection<R extends Resource = Resource> extends Document 
         this.builded = data_collection.data && data_collection.data.length === 0;
         for (let dataresource of data_collection.data) {
             let res = this.find(dataresource.id) || Converter.getService(dataresource.type).getOrCreateResource(dataresource.id);
+
+            console.log(res);
+            if(Core.injectedServices.rsJsonapiConfig.cachestore_support && res.source == 'new'){
+                Converter.getService(dataresource.type).cachestore.getResource(res).then(() => {
+                    console.log('next getResource', res);
+                })
+                .catch((e) => {
+                    console.log('catch getResource (a)', e);
+                });;
+            }
             res.fill({ data: dataresource } /* , included_resources */); // @todo check with included resources?
             new_ids[dataresource.id] = dataresource.id;
             this.data.push(<R>res);

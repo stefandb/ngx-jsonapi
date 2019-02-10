@@ -1,3 +1,4 @@
+import { Core } from './../core';
 import { IResourcesByType } from '../interfaces';
 import { IDataCollection } from '../interfaces/data-collection';
 import { IDataObject } from '../interfaces/data-object';
@@ -30,10 +31,10 @@ export class ResourceRelationshipsConverter {
         // recorro los relationships levanto el service correspondiente
         for (const relation_alias in this.relationships_from) {
             let relation_from_value: IDataCollection & IDataObject = this.relationships_from[relation_alias];
-
             if (!relation_from_value.data) {
                 continue;
             }
+            
 
             if (this.relationships_dest[relation_alias] instanceof DocumentCollection) {
                 this.__buildRelationshipHasMany(relation_from_value, relation_alias);
@@ -77,14 +78,12 @@ export class ResourceRelationshipsConverter {
         // new related resource <> cached related resource <> ? delete!
         if (!('type' in relation_data_from.data)) {
             this.relationships_dest[relation_alias].data = [];
-
             return;
         }
 
         if (relation_data_from.data.id !== (<Resource>this.relationships_dest[relation_alias].data).id) {
             this.relationships_dest[relation_alias].data = new Resource();
         }
-
         if ((<Resource>this.relationships_dest[relation_alias].data).id !== relation_data_from.data.id) {
             let resource_data = this.__buildRelationship(relation_data_from.data, this.included_resources);
             if (resource_data) {
@@ -106,9 +105,16 @@ export class ResourceRelationshipsConverter {
         } else {
             // OPTIONAL: return cached Resource
             let service = this.getService(resource_data_from.type);
-            if (service && resource_data_from.id in service.cachememory.resources) {
-                return service.cachememory.resources[resource_data_from.id];
+            let resource = service.getOrCreateResource(resource_data_from.id);
+            if(Core.injectedServices.rsJsonapiConfig.cachestore_support && resource.source == 'new'){
+                service.cachestore.getResource(resource).then(() => {
+                })
+                .catch((error) => {
+                    console.log('catch getResource (b)', error);
+                });;
             }
+
+            return resource;
         }
     }
 }
