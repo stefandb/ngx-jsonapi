@@ -42,16 +42,13 @@ export class DocumentCollection<R extends Resource = Resource> extends Document 
         for (let dataresource of data_collection.data) {
             let res = this.find(dataresource.id) || Converter.getService(dataresource.type).getOrCreateResource(dataresource.id);
 
-            console.log(res);
             if(Core.injectedServices.rsJsonapiConfig.cachestore_support && res.source == 'new'){
-                Converter.getService(dataresource.type).cachestore.getResource(res).then(() => {
-                    console.log('next getResource', res);
-                })
+                Converter.getService(dataresource.type).cachestore.getResource(res).then(() => {})
                 .catch((e) => {
                     console.log('catch getResource (a)', e);
                 });;
             }
-            res.fill({ data: dataresource } /* , included_resources */); // @todo check with included resources?
+            res.fill({ data: dataresource, included: data_collection.included || [] });
             new_ids[dataresource.id] = dataresource.id;
             this.data.push(<R>res);
             if (Object.keys(res.attributes).length > 0) {
